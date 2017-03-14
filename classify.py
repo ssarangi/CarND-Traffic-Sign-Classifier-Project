@@ -95,9 +95,62 @@ def LeNet(x):
 
     return logits
 
+def train():
+    x = tf.placeholder(tf.float32, (None, 32, 32, 3))
+    y = tf.placeholder(tf.int32, (None))
+
+    one_hot_y = tf.one_hot(y, 10)
+
+    rate = 0.001
+
+    logits = Lenet(x)
+
+    cross_entropy      = tf.nn.softmax_cross_entropy_with_logits(logits, one_hot_y)
+    loss_operation     = tf.reduce_mean(cross_entropy)
+    optimizer          = tf.train.AdamOptimizer(learning_rate=rate)
+    training_operation = optimizer.minimize(loss_operation)
+
+    correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_hot_y, 1))
+    accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    saver = tf.train.Saver()
+    return saver
+
+def evaluate(X_data, y_data):
+    num_examples = len(X_data)
+    total_accuracy = 0
+    sess = tf.get_default_session()
+    for offset in range(0, num_examples, BATCH_SIZE):
+        batch_x, batch_y = X_data[offset:offset+BATCH_SIZE], y_data[offset:offset+BATCH_SIZE]
+        accuracy = sess.run(accuracy_operation, feed_dict={x: batch_x, y: batch_y})
+        total_accuracy += (accuracy * len(batch_x))
+    return total_accuracy / num_examples
+
 
 def main():
     data = Data()
+
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        num_examples = len(X_train)
+
+        saver = train(X_train)
+
+        print("Training...")
+        print()
+        for i in range(EPOCHS):
+            X_train, y_train = shuffle(data.X_train, data.y_train)
+            for offset in range(0, num_examples, BATCH_SIZE):
+                end = offset + BATCH_SIZE
+                batch_x, batch_y = data.X_train[offset:end], data.y_train[offset:end]
+                sess.run(training_operation, feed_dict={x: batch_x, y: batch_y})
+
+            validation_accuracy = evaluate(data.X_validation, data.y_validation)
+            print("EPOCH {} ...".format(i+1))
+            print("Validation Accuracy = {:.3f}".format(validation_accuracy))
+            print()
+
+        saver.save(sess, './lenet')
+        print("Model saved")
 
 
 if __name__ == "__main__":
