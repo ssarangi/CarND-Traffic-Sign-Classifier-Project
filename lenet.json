@@ -1,0 +1,14 @@
+conv1
+{
+    "type": "cnn",
+    "filter_size": "(5, 5)",
+    "stride": "(1, 1)",
+    "padding": "SAME",
+    "activation_func": "relu",
+    "maxpool":
+    {
+        "size": "(2, 2)",
+        "stride": "(2, 2)",
+    },
+    "connects_to": "None"
+}
