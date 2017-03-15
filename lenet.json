@@ -1,14 +1,29 @@
-conv1
 {
-    "type": "cnn",
-    "filter_size": "(5, 5)",
-    "stride": "(1, 1)",
-    "padding": "SAME",
-    "activation_func": "relu",
-    "maxpool":
+    "conv1":
     {
-        "size": "(2, 2)",
-        "stride": "(2, 2)",
+        "type": "cnn",
+        "filters": 32,
+        "kernel_size": [5, 5],
+        "stride": [1, 1],
+        "padding": "SAME",
+        "activation_func": "relu",
+        "maxpool": {
+            "size": [2, 2],
+            "stride": [2, 2]
+        },
+        "connects_to": "conv2"
     },
-    "connects_to": "None"
+    "conv2":
+    {
+        "type": "cnn",
+        "filters": 64,
+        "kernel_size": [5, 5],
+        "padding": "SAME",
+        "activation_func": "relu",
+        "maxpool": {
+            "size": [2, 2],
+            "strides": [2, 2],
+        },
+        "connects_to": ""
+    }
 }
