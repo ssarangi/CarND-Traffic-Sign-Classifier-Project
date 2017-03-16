@@ -4,6 +4,7 @@ import numpy as np
 import json
 import pickle
 
+from sklearn.utils import shuffle
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 from tensorflow.contrib.layers import flatten
@@ -55,6 +56,20 @@ class CNN:
 
     def __str__(self):
         return self
+
+    __repr__ = __str__
+
+class Dense:
+    def __init__(self, name, units):
+        self.name = name
+        self.units = units
+
+    def get_tensor(self, inputs):
+        tensor = tf.layers.dense(inputs=inputs, units=self.units)
+        return tensor
+
+    def __str__(self):
+        return self.name
 
     __repr__ = __str__
 
@@ -161,8 +176,13 @@ def main():
     y = tf.placeholder(tf.int32, (None))
     one_hot_y = tf.one_hot(y, 10)
 
+    # Load the data first and split it into training and testing sets
     data = Data()
+
+    # Load the architecture file and see what we can figure out from it.
     arch = Architecture("lenet.json")
+    arch.generate_graph(x, y)
+
     logits = arch.get_logits()
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits, one_hot_y)
     loss_operation = tf.reduce_mean(cross_entropy)
@@ -176,13 +196,12 @@ def main():
         print("Training...")
         print()
         for i in range(EPOCHS):
-            X_train, y_train = shuffle(data.X_train, data.y_train)
+            x_train, y_train = shuffle(data.X_train, data.y_train)
             for offset in range(0, num_examples, BATCH_SIZE):
                 end = offset + BATCH_SIZE
-                batch_x, batch_y = data.X_train[offset:end], data.y_train[offset:end]
-                sess.run()
+                batch_x, batch_y = x_train[offset:end], y_train[offset:end]
+                sess.run(training_operation, feed_dict={x: batch_x, y: batch_y})
 
-    arch.generate_graph(features, labels)
 
 if __name__ == "__main__":
     main()
