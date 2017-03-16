@@ -2,6 +2,10 @@ import tensorflow as tf
 import numpy as np
 
 import json
+import pickle
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import ImageGrid
 
 class Maxpool:
     def __init__(self, size, strides):
@@ -97,15 +101,86 @@ class Architecture:
         input = features
         node = entry_node
         tensor = None
+        self.logits = None
         while node is not None:
             tensor = node.get_tensor(input)
             input = tensor
             node = node.next
+            self.logits = tensor
+
+    def get_logits(self):
+        return self.logits
+
+class Data:
+    def __init__(self):
+        training_file = 'data/train.p'
+        validation_file= 'data/valid.p'
+        testing_file = 'data/test.p'
+
+        with open(training_file, mode='rb') as f:
+            train = pickle.load(f)
+        with open(validation_file, mode='rb') as f:
+            valid = pickle.load(f)
+        with open(testing_file, mode='rb') as f:
+            test = pickle.load(f)
+
+        self.X_train, self.y_train = train['features'], train['labels']
+        self.X_valid, self.y_valid = valid['features'], valid['labels']
+        self.X_test, self.y_test = test['features'], test['labels']
+
+    def render_data(self):
+        image_with_label = zip(self.X_train, self.y_train)
+        seen_labels = set()
+
+        fig = plt.figure(figsize=(200, 200))
+        total_unique_labels = len(set(self.y_train))
+        unique_rows = total_unique_labels // 5 + 1
+
+        grid = ImageGrid(fig, 151,  # similar to subplot(141)
+                        nrows_ncols=(unique_rows, 5),
+                        axes_pad=0.05,
+                        label_mode="1",
+                        )
+
+        i = 0
+        for i_l in image_with_label:
+            img, label = i_l
+            if label not in seen_labels:
+                im = grid[i].imshow(img)
+                seen_labels.add(label)
+                i += 1
+
+        plt.show()
 
 def main():
+    EPOCHS = 10
+    BATCH_SIZE = 128
+
+    x = tf.placeholder(tf.float32, (None, 32, 32, 3))
+    y = tf.placeholder(tf.int32, (None))
+    one_hot_y = tf.one_hot(y, 10)
+
+    data = Data()
     arch = Architecture("lenet.json")
-    features = None
-    labels = None
+    logits = arch.get_logits()
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits, one_hot_y)
+    loss_operation = tf.reduce_mean(cross_entropy)
+    optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+    training_operation = optimizer.minimize(loss_operation)
+
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        num_examples = len(data.X_train)
+
+        print("Training...")
+        print()
+        for i in range(EPOCHS):
+            X_train, y_train = shuffle(data.X_train, data.y_train)
+            for offset in range(0, num_examples, BATCH_SIZE):
+                end = offset + BATCH_SIZE
+                batch_x, batch_y = data.X_train[offset:end], data.y_train[offset:end]
+                sess.run()
+
     arch.generate_graph(features, labels)
 
 if __name__ == "__main__":
