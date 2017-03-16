@@ -6,6 +6,7 @@ import pickle
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
+from tensorflow.contrib.layers import flatten
 
 class Maxpool:
     def __init__(self, size, strides):
