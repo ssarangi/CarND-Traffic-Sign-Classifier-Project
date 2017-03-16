@@ -2,7 +2,7 @@
     "conv1":
     {
         "type": "cnn",
-        "filters": 32,
+        "filters": 6,
         "kernel_size": [5, 5],
         "strides": [1, 1],
         "padding": "SAME",
@@ -27,11 +27,16 @@
             "size": [2, 2],
             "strides": [2, 2]
         },
+        "connects_to": "flatten_layer"
+    },
+    "flatten_layer":
+    {
+        "type": "flatten",
         "connects_to": "dense_layer_1"
     },
     "dense_layer_1":
     {
-        "type": "dense",
+        "type": "flatten",
         "units": 1024,
         "dropout":
         {

@@ -55,23 +55,39 @@ class CNN:
         return tensor
 
     def __str__(self):
-        return self
+        return self.name + " (CNN)"
 
     __repr__ = __str__
 
 class Dense:
-    def __init__(self, name, units):
+    def __init__(self, name, units, dropout=None):
         self.name = name
         self.units = units
+        self.dropout = dropout
+        self.next = None
 
     def get_tensor(self, inputs):
         tensor = tf.layers.dense(inputs=inputs, units=self.units)
         return tensor
 
     def __str__(self):
-        return self.name
+        return self.name + " (Dense)"
 
     __repr__ = __str__
+
+
+class Flatten:
+    def __init__(self, name):
+        self.name = name
+        self.next = None
+
+    def get_tensor(self, inputs):
+        tensor = flatten(inputs)
+        return tensor
+
+    def __str__(self):
+        return self.name + " (Flatten)"
+
 
 class Architecture:
     def __init__(self, filename):
@@ -86,12 +102,20 @@ class Architecture:
         # Create the nodes first.
         for key in arch_str:
             k = arch_str[key]
+            node = None
             if k['type'] == 'cnn':
                 node = CNN(key, k['filters'], k['kernel_size'], k['strides'], k['padding'], k['activation_func'])
                 # Setup the Maxpool Node
                 node.maxpool = Maxpool(k['maxpool']['size'], k['maxpool']['strides'])
-                node_map[key] = node
-                self.nodes.append(node)
+            elif k['type'] == 'flatten':
+                node = Flatten(key)
+            elif k['type'] == 'dense':
+                dropout = k.get('dropout')
+                node = Dense(key, k['units'], dropout)
+
+            assert(node is not None)
+            node_map[key] = node
+            self.nodes.append(node)
 
         # Create the connections from the node
         for key in arch_str:
@@ -110,7 +134,7 @@ class Architecture:
         # Do a topological sort to find out the first node we need
         pass
 
-    def generate_graph(self, features, labels):
+    def generate_graph(self, features):
         entry_node = self._get_entry_node()
 
         # Now at this point we can recursively go through and find the tensor
@@ -126,6 +150,7 @@ class Architecture:
 
     def get_logits(self):
         return self.logits
+
 
 class Data:
     def __init__(self):
@@ -174,17 +199,22 @@ def main():
 
     x = tf.placeholder(tf.float32, (None, 32, 32, 3))
     y = tf.placeholder(tf.int32, (None))
-    one_hot_y = tf.one_hot(y, 10)
 
     # Load the data first and split it into training and testing sets
     data = Data()
 
+    # For One hot encoding lets make the depth the maximum value of y so that way we have the right
+    # encoding for now. However, this is inefficient since this is a sparse matrix.
+    # TODO: Re-normalize the labels so that the min value in the label becomes 1 and the rest of the
+    # values are represented with the differences.
+    one_hot_y = tf.one_hot(y, max(data.y_train))
+
     # Load the architecture file and see what we can figure out from it.
     arch = Architecture("lenet.json")
-    arch.generate_graph(x, y)
+    arch.generate_graph(x)
 
     logits = arch.get_logits()
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits, one_hot_y)
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=one_hot_y)
     loss_operation = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
     training_operation = optimizer.minimize(loss_operation)
